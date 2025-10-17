@@ -6,45 +6,7 @@ import torch.nn.functional as F
 from torch.nn.attention.flex_attention import flex_attention
 
 from .utils import get_freqs, nablaT_v2
-
-if torch.cuda.get_device_capability()[0] >= 9:        
-    try:
-        from flash_attn import flash_attn_func as FA
-        print("FlashAttention 2 is found")
-    except:
-        FA = None
-
-    try:
-        from flash_attn_interface import flash_attn_func as FA
-        print("FlashAttention 3 is found")
-    except:
-        FA = FA
-else:
-    try:
-        from flash_attn import flash_attn_func as FA
-        print("FlashAttention 2 is found")
-    except:
-        FA = None
-
-@torch.compile(mode="max-autotune-no-cudagraphs", dynamic=True)
-def sdpa(q, k, v):
-    query = q.transpose(1, 2).contiguous()
-    key = k.transpose(1, 2).contiguous()
-    value = v.transpose(1, 2).contiguous()
-    out = (
-        F.scaled_dot_product_attention(
-            query,
-            key,
-            value
-        )
-        .transpose(1, 2)
-        .contiguous()
-    )
-    return out
-
-if FA is None:
-    print("FlashAttention is not found. Using SDPA instead.")
-    FA = sdpa
+from.attention import SelfAttentionEngine
 
 @torch.compile()
 @torch.autocast(device_type="cuda", dtype=torch.float32)
@@ -188,7 +150,7 @@ class Modulation(nn.Module):
         return self.out_layer(self.activation(x))
 
 class MultiheadSelfAttentionEnc(nn.Module):
-    def __init__(self, num_channels, head_dim):
+    def __init__(self, num_channels, head_dim, attention_engine="auto"):
         super().__init__()
         assert num_channels % head_dim == 0
         self.num_heads = num_channels // head_dim
@@ -200,6 +162,8 @@ class MultiheadSelfAttentionEnc(nn.Module):
         self.key_norm = nn.RMSNorm(head_dim)
 
         self.out_layer = nn.Linear(num_channels, num_channels, bias=True)
+
+        self.attn_engine = SelfAttentionEngine(attention_engine)
 
     @torch.compile()
     def get_qkv(self, x):
@@ -222,7 +186,10 @@ class MultiheadSelfAttentionEnc(nn.Module):
 
     @torch.compile()
     def scaled_dot_product_attention(self, query, key, value):
-        out = FA(q=query.unsqueeze(0), k=key.unsqueeze(0), v=value.unsqueeze(0))[0].flatten(-2, -1)
+        out = self.attn_engine.get_attention()(
+            q=query.unsqueeze(0),
+            k=key.unsqueeze(0),
+            v=value.unsqueeze(0))[0].flatten(-2, -1)
         return out
 
     @torch.compile()
@@ -241,7 +208,7 @@ class MultiheadSelfAttentionEnc(nn.Module):
         return out
 
 class MultiheadSelfAttentionDec(nn.Module):
-    def __init__(self, num_channels, head_dim):
+    def __init__(self, num_channels, head_dim, attention_engine="auto"):
         super().__init__()
         assert num_channels % head_dim == 0
         self.num_heads = num_channels // head_dim
@@ -253,6 +220,8 @@ class MultiheadSelfAttentionDec(nn.Module):
         self.key_norm = nn.RMSNorm(head_dim)
 
         self.out_layer = nn.Linear(num_channels, num_channels, bias=True)
+
+        self.attn_engine = SelfAttentionEngine(attention_engine)
 
     @torch.compile()
     def get_qkv(self, x):
@@ -275,7 +244,10 @@ class MultiheadSelfAttentionDec(nn.Module):
 
     @torch.compile()
     def attention(self, query, key, value):
-        out = FA(q=query.unsqueeze(0), k=key.unsqueeze(0), v=value.unsqueeze(0))[0].flatten(-2, -1)
+        out = self.attn_engine.get_attention()(
+            q=query.unsqueeze(0),
+            k=key.unsqueeze(0),
+            v=value.unsqueeze(0))[0].flatten(-2, -1)
         return out
 
     @torch.compile(mode="max-autotune-no-cudagraphs", dynamic=True)
@@ -323,7 +295,7 @@ class MultiheadSelfAttentionDec(nn.Module):
 
 
 class MultiheadCrossAttention(nn.Module):
-    def __init__(self, num_channels, head_dim):
+    def __init__(self, num_channels, head_dim, attention_engine="auto"):
         super().__init__()
         assert num_channels % head_dim == 0
         self.num_heads = num_channels // head_dim
@@ -335,6 +307,8 @@ class MultiheadCrossAttention(nn.Module):
         self.key_norm = nn.RMSNorm(head_dim)
 
         self.out_layer = nn.Linear(num_channels, num_channels, bias=True)
+
+        self.attn_engine = SelfAttentionEngine(attention_engine)
 
     @torch.compile()
     def get_qkv(self, x, cond):
@@ -357,7 +331,10 @@ class MultiheadCrossAttention(nn.Module):
 
     @torch.compile()
     def attention(self, query, key, value):
-        out = FA(q=query.unsqueeze(0), k=key.unsqueeze(0), v=value.unsqueeze(0))[0].flatten(-2, -1)
+        out = self.attn_engine.get_attention()(
+            q=query.unsqueeze(0),
+            k=key.unsqueeze(0),
+            v=value.unsqueeze(0))[0].flatten(-2, -1)
         return out
 
     @torch.compile()

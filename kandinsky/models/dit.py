@@ -20,12 +20,12 @@ from .utils import fractal_flatten, fractal_unflatten
 
 
 class TransformerEncoderBlock(nn.Module):
-    def __init__(self, model_dim, time_dim, ff_dim, head_dim):
+    def __init__(self, model_dim, time_dim, ff_dim, head_dim, attention_engine="auto"):
         super().__init__()
         self.text_modulation = Modulation(time_dim, model_dim, 6)
 
         self.self_attention_norm = nn.LayerNorm(model_dim, elementwise_affine=False)
-        self.self_attention = MultiheadSelfAttentionEnc(model_dim, head_dim)
+        self.self_attention = MultiheadSelfAttentionEnc(model_dim, head_dim, attention_engine)
 
         self.feed_forward_norm = nn.LayerNorm(model_dim, elementwise_affine=False)
         self.feed_forward = FeedForward(model_dim, ff_dim)
@@ -45,15 +45,15 @@ class TransformerEncoderBlock(nn.Module):
 
 
 class TransformerDecoderBlock(nn.Module):
-    def __init__(self, model_dim, time_dim, ff_dim, head_dim):
+    def __init__(self, model_dim, time_dim, ff_dim, head_dim, attention_engine="auto"):
         super().__init__()
         self.visual_modulation = Modulation(time_dim, model_dim, 9)
 
         self.self_attention_norm = nn.LayerNorm(model_dim, elementwise_affine=False)
-        self.self_attention = MultiheadSelfAttentionDec(model_dim, head_dim)
+        self.self_attention = MultiheadSelfAttentionDec(model_dim, head_dim, attention_engine)
 
         self.cross_attention_norm = nn.LayerNorm(model_dim, elementwise_affine=False)
-        self.cross_attention = MultiheadCrossAttention(model_dim, head_dim)
+        self.cross_attention = MultiheadCrossAttention(model_dim, head_dim, attention_engine)
 
         self.feed_forward_norm = nn.LayerNorm(model_dim, elementwise_affine=False)
         self.feed_forward = FeedForward(model_dim, ff_dim)
@@ -94,6 +94,7 @@ class DiffusionTransformer3D(nn.Module):
         num_visual_blocks=32,
         axes_dims=(16, 24, 24),
         visual_cond=False,
+        attention_engine="auto"
     ):
         super().__init__()
         head_dim = sum(axes_dims)
@@ -111,7 +112,7 @@ class DiffusionTransformer3D(nn.Module):
         self.text_rope_embeddings = RoPE1D(head_dim)
         self.text_transformer_blocks = nn.ModuleList(
             [
-                TransformerEncoderBlock(model_dim, time_dim, ff_dim, head_dim)
+                TransformerEncoderBlock(model_dim, time_dim, ff_dim, head_dim, attention_engine)
                 for _ in range(num_text_blocks)
             ]
         )
@@ -119,7 +120,7 @@ class DiffusionTransformer3D(nn.Module):
         self.visual_rope_embeddings = RoPE3D(axes_dims)
         self.visual_transformer_blocks = nn.ModuleList(
             [
-                TransformerDecoderBlock(model_dim, time_dim, ff_dim, head_dim)
+                TransformerDecoderBlock(model_dim, time_dim, ff_dim, head_dim, attention_engine)
                 for _ in range(num_visual_blocks)
             ]
         )

@@ -125,6 +125,13 @@ def parse_args():
         default=False,
         help="Use quantized Qwen2.5-VL model (4-bit quantization)"
     )
+    parser.add_argument(
+        "--attention_engine",
+        type=str,
+        default="auto",
+        help="Name of the full attention algorithm to use for <=5 second generation",
+        choices=["flash_attention_2", "flash_attention_3", "sdpa", "auto"]
+    )
     args = parser.parse_args()
     return args
 
@@ -141,6 +148,7 @@ if __name__ == "__main__":
         offload=args.offload,
         magcache=args.magcache,
         quantized_qwen=args.qwen_quantization,
+        attention_engine=args.attention_engine,
     )
 
     if args.output_filename is None:
