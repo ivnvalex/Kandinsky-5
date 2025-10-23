@@ -18,8 +18,9 @@ https://github.com/user-attachments/assets/b9ff0417-02a4-4f6b-aacc-60c44e7fe6f1
 
 ## Project Updates
 
-- 🔥 **Source**: ```2025/09/29```: We have open-sourced `Kandinsky 5.0 T2V Lite` a lite (2B parameters) version of `Kandinsky 5.0 Video` text-to-video generation model. Released checkpoints: `kandinsky5lite_t2v_pretrain_5s`, `kandinsky5lite_t2v_pretrain_10s`, `kandinsky5lite_t2v_sft_5s`, `kandinsky5lite_t2v_sft_10s`, `kandinsky5lite_t2v_nocfg_5s`, `kandinsky5lite_t2v_nocfg_10s`, `kandinsky5lite_t2v_distilled16steps_5s`, `kandinsky5lite_t2v_distilled16steps_10s` contains weight from pretrain, supervised finetuning, cfg distillation and diffusion distillation into 16 steps. 5s checkpoints are capable of generating videos up to 5 seconds long. 10s checkpoints is faster models checkpoints trained with [NABLA](https://huggingface.co/ai-forever/Wan2.1-T2V-14B-NABLA-0.7) algorithm and capable to generate videos up to 10 seconds long.
-- 🔥 **Source**: ```2025/10/7```: The ComfyUI README file has been updated. SDPA support has been added, allowing you to run our code without Flash attention. Magcache support for nocfg checkpoints has been added, allowing Magcache support for sft and nocfg checkpoints. Memory consumption in the VAE has been reduced, with the entire pipeline now running at 24 GB with offloading.
+- 🔥 ```2025/09/29```: We have open-sourced `Kandinsky 5.0 T2V Lite` a lite (2B parameters) version of `Kandinsky 5.0 Video` text-to-video generation model. Released checkpoints: `kandinsky5lite_t2v_pretrain_5s`, `kandinsky5lite_t2v_pretrain_10s`, `kandinsky5lite_t2v_sft_5s`, `kandinsky5lite_t2v_sft_10s`, `kandinsky5lite_t2v_nocfg_5s`, `kandinsky5lite_t2v_nocfg_10s`, `kandinsky5lite_t2v_distilled16steps_5s`, `kandinsky5lite_t2v_distilled16steps_10s` contains weight from pretrain, supervised finetuning, cfg distillation and diffusion distillation into 16 steps. 5s checkpoints are capable of generating videos up to 5 seconds long. 10s checkpoints is faster models checkpoints trained with [NABLA](https://huggingface.co/ai-forever/Wan2.1-T2V-14B-NABLA-0.7) algorithm and capable to generate videos up to 10 seconds long.
+- 🔥 ```2025/10/7```: The ComfyUI README file has been updated. SDPA support has been added, allowing you to run our code without Flash attention. Magcache support for nocfg checkpoints has been added, allowing Magcache support for sft and nocfg checkpoints. Memory consumption in the VAE has been reduced, with the entire pipeline now running at 24 GB with offloading.
+- 🔥 ```2025/10/19```: Further VAE tiling optimization. NF4 version of Qwen2.5-VL from Bitsandbytes is supported. Flash Attention 2, Flash Attention 2, Sage Attention or SDPA can be selected for 5-seconds generation using option --attention_engine. Now generation should work on the GPUS with 12 GB of memory. Kandinsky 5 Video Lite is [accepted to diffusers](https://github.com/huggingface/diffusers/pull/12478).
 
 ## Kandinsky 5.0 T2V Lite
 
@@ -290,6 +291,42 @@ Also we provide [Magcache](https://github.com/Zehong-Ma/MagCache) inference for 
 ```sh
 python test.py --prompt "A dog in red hat" --magcache
 ```
+
+#### Qwen encoder quantization
+To reduce GPU memory needed for Qwen encoder we provide option to use NF4-quantized version from [bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes).
+
+```sh
+python test.py --prompt "A dog in red hat" --qwen_quantization
+```
+
+#### Attention engine selection
+Depending on your hardware you can use the follwing full attention algorithm implementation:
+* PyTorch [SDPA](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html)
+* [Flash Attention 2](https://github.com/Dao-AILab/flash-attention)
+* [Flash Attention 3](https://github.com/Dao-AILab/flash-attention/tree/main/hopper)
+* [Sage Attention](https://github.com/thu-ml/SageAttention)
+
+The attention algorithm can be selected using an option "--attention_engine" of test.py script for 5 second (and less) video generation. For 10-second generation we use sparse attention algorithm [NABLA](https://arxiv.org/abs/2507.13546).
+
+Note that currently (19 Oct. 2025) version build from source contains a bug and produces noisy output. A temporary workaround to fix it is decribed [here](https://github.com/thu-ml/SageAttention/issues/277).
+
+```sh
+python test.py --prompt "A dog in red hat" --attention_engine=flash_attention_3
+```
+
+```sh
+python test.py --prompt "A dog in red hat" --attention_engine=flash_attention_2
+```
+
+```sh
+python test.py --prompt "A dog in red hat" --attention_engine=sdpa
+```
+
+```sh
+python test.py --prompt "A dog in red hat" --attention_engine=sage
+```
+
+By default we use option --attention_engine=auto which enables automatic selection of the most optimal algorithm installed in your system.
 
 ### ComfyUI
 
