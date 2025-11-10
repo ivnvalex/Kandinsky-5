@@ -67,7 +67,7 @@ All models are available in two versions: for generating 5-second and 10-second 
 | Kandinsky 5.0 T2V Lite no-CFG 10s   |configs/config_10s_nocfg.yaml| 10s            | 50  |🤗 [HF](https://huggingface.co/ai-forever/Kandinsky-5.0-T2V-Lite-nocfg-10s) |     124 s      |
 | Kandinsky 5.0 T2V Lite distill 5s   |configs/config_5s_distil.yaml| 5s             | 16  | 🤗 [HF](https://huggingface.co/ai-forever/Kandinsky-5.0-T2V-Lite-distilled16steps-5s)|       35 s     |
 | Kandinsky 5.0 T2V Lite distill 10s  |configs/config_10s_distil.yaml| 10s            | 16  | 🤗 [HF](https://huggingface.co/ai-forever/Kandinsky-5.0-T2V-Lite-distilled16steps-10s)|      61 s      |              |
-| Kandinsky 5.0 I2V Lite 5s  |configs/config_5s_i2v.yaml| 5s            | 100  | 🤗 [HF](https://huggingface.co/ai-forever/Kandinsky-5.0-I2V-Lite-5s)|      73 s      |              |
+| Kandinsky 5.0 I2V Lite 5s  |configs/config_5s_i2v.yaml| 5s            | 100  | 🤗 [HF](https://huggingface.co/ai-forever/Kandinsky-5.0-I2V-Lite-5s)|      139 s      |              |
 
 *Latency was measured after the second inference run. The first run of the model can be slower due to the compilation process. Inference was measured on an NVIDIA H100 GPU with 80 GB of memory, using CUDA 12.8.1 and PyTorch 2.8. For 5-second models Flash Attention 3 was used.
 
