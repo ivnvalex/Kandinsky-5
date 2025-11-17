@@ -189,10 +189,10 @@ if __name__ == "__main__":
         args.output_filename = "./" + args.prompt.replace(" ", "_")
         if len(args.output_filename) > 32:
             args.output_filename = args.output_filename[:32]
-        if "i2v" in args.config or "t2v" in args.config:
-            args.output_filename = args.output_filename + ".mp4"
-        else:
+        if "t2i" in args.config:
             args.output_filename = args.output_filename + ".png"
+        else:
+            args.output_filename = args.output_filename + ".mp4"
 
     start_time = time.perf_counter()
     if "t2i" in args.config:
